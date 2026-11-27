@@ -1,0 +1,14 @@
+{
+  "name": "compound",
+  "private": true,
+  "description": "Compound: a personal food, weight, steps and workout log.",
+  "scripts": {
+    "build:train": "esbuild src/train/main.jsx --bundle --minify --format=iife --jsx-factory=h --jsx-fragment=Fragment --target=es2019 --outfile=train.js",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.2",
+    "preact": "10.29.8",
+    "wrangler": "4.169.0"
+  }
+}

@@ -117,10 +117,44 @@
     saveMeta();
   }
 
+  // ---------- shared store ----------
+  // The Train screen (train.js) owns workouts, exercises and templates. The
+  // older app bundle still saves the whole log on every change, so when it
+  // writes we keep the stored copy of those fields instead of its stale one.
+  var TRAIN_FIELDS = ["workouts", "exercises", "templates"];
+  function readLog() { try { return JSON.parse(lsGet(KEY) || "null"); } catch (e) { return null; } }
+  function markChanged() { meta.dirty = true; saveMeta(); schedulePush(); }
+  window.compoundStore = {
+    read: readLog,
+    write: function (mutate) {
+      var data = readLog() || {};
+      mutate(data);
+      if (!lsSet(KEY, JSON.stringify(data))) return false;
+      markChanged();
+      try { window.dispatchEvent(new Event("compound:changed")); } catch (e) {}
+      return true;
+    },
+  };
+  function keepTrainFields(v) {
+    var current = readLog();
+    if (!current) return v;
+    try {
+      var incoming = JSON.parse(v);
+      // Keep our copy unless it's empty (e.g. a brand-new log the app is filling with defaults).
+      TRAIN_FIELDS.forEach(function (f) {
+        var c = current[f];
+        var hasData = Array.isArray(c) ? c.length > 0 : c && typeof c === "object" && Object.keys(c).length > 0;
+        if (hasData) incoming[f] = c;
+      });
+      return JSON.stringify(incoming);
+    } catch (e) { return v; }
+  }
+
   // ---------- the storage object the app uses ----------
   window.storage = {
     get: async function (k) { var v = lsGet(k); return v === null ? null : { key: k, value: v }; },
     set: async function (k, v) {
+      if (k === KEY && !window.__compoundRestoring) v = keepTrainFields(v);
       if (!lsSet(k, v)) return null;
       if (k === KEY) { meta.dirty = true; saveMeta(); schedulePush(); }
       return { key: k, value: v };

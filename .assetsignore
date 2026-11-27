@@ -8,3 +8,6 @@ README.md
 .git
 .gitignore
 .assetsignore
+src
+package.json
+package-lock.json

@@ -181,7 +181,8 @@
 
     // Weight: "weighed 173.5", "weight 173.5", "173.5 lb", "w 173.5"
     var w = /^(?:i\s+)?(?:weighed(?:\s+in)?(?:\s+at)?|weight(?:\s+(?:is|was))?|wt|w)\s*:?\s*(\d{2,3}(?:\.\d+)?)\s*(?:lbs?|pounds)?$/i.exec(p) ||
-            /^(\d{2,3}(?:\.\d+)?)\s*(?:lbs?|pounds)$/i.exec(p);
+            /^(\d{2,3}(?:\.\d+)?)\s*(?:lbs?|pounds)$/i.exec(p) ||
+            /^(\d{3}(?:\.\d+)?)$/.exec(p); // a bare number like "173.5", as the Dashboard suggests
     if (w) {
       var lb = num(w[1]);
       if (lb < 100 || lb > 400) return { error: "Weight should be in pounds, between 100 and 400." };
