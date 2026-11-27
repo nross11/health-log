@@ -10,5 +10,8 @@
     "esbuild": "0.24.2",
     "preact": "10.29.8",
     "wrangler": "4.169.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.8.0"
   }
 }
