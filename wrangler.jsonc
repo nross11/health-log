@@ -1,6 +1,23 @@
 {
   "name": "health-log",
+  "main": "worker.js",
   "compatibility_date": "2026-11-01",
-  "assets": { "directory": "." },
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "health-log",
+      "database_id": "648f5cef-e576-481d-b43f-b6e56b2be428",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // Public by design: Google sign-in client IDs are not secrets.
+    "GOOGLE_CLIENT_ID": ""
+  },
   "previews": {}
 }
