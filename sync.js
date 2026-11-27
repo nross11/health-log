@@ -134,6 +134,8 @@
       try { window.dispatchEvent(new Event("compound:changed")); } catch (e) {}
       return true;
     },
+    // Upload pending changes now (Settings saves, then reloads the page).
+    flush: function () { return push(); },
   };
   function keepTrainFields(v) {
     var current = readLog();

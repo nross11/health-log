@@ -4,7 +4,9 @@
   "description": "Compound: a personal food, weight, steps and workout log.",
   "scripts": {
     "build:train": "esbuild src/train/main.jsx --bundle --minify --format=iife --jsx-factory=h --jsx-fragment=Fragment --target=es2019 --outfile=train.js",
-    "dev": "wrangler dev"
+    "dev": "wrangler dev",
+    "build:settings": "esbuild src/settings/main.jsx --bundle --minify --format=iife --jsx-factory=h --jsx-fragment=Fragment --target=es2019 --outfile=settings.js",
+    "patch:app": "node scripts/patch-app.mjs"
   },
   "devDependencies": {
     "esbuild": "0.24.2",
