@@ -61,7 +61,14 @@ async function handleApi(request, env, url) {
   }
 
   const user = await currentUser(request, env);
-  if (!user) return json({ error: "signed_out" }, 401);
+  if (!user) {
+    if (pathname === "/api/ai") return aiError(401, "You're signed out. Reload the app to sign in again.");
+    return json({ error: "signed_out" }, 401);
+  }
+
+  if (pathname === "/api/ai" && method === "POST") {
+    return proxyAi(request, env, user);
+  }
 
   if (pathname === "/api/me" && method === "GET") {
     return json({ email: user.email, name: user.name });
@@ -115,6 +122,64 @@ async function handleApi(request, env, url) {
   }
 
   return json({ error: "not_found" }, 404);
+}
+
+// ---- AI proxy: the app's food/weight/steps parsing goes through here ----
+// The Anthropic key lives only in the ANTHROPIC_API_KEY Worker secret.
+
+const AI_MAX_BODY_BYTES = 8_000_000; // room for a photo
+const AI_MAX_TOKENS = 2000;
+const AI_ALLOWED_TOOLS = new Set(["web_search_20250305"]);
+
+function aiError(status, message) {
+  return json({ type: "error", error: { type: "proxy_error", message } }, status);
+}
+
+async function proxyAi(request, env, user) {
+  if (!env.ANTHROPIC_API_KEY) return aiError(503, "AI isn't set up yet (no API key on the server).");
+
+  const raw = await request.text();
+  if (raw.length > AI_MAX_BODY_BYTES) return aiError(413, "That request is too large.");
+  let body;
+  try { body = JSON.parse(raw); } catch { return aiError(400, "Bad request."); }
+  if (!Array.isArray(body.messages) || body.messages.length === 0 || body.messages.length > 50) {
+    return aiError(400, "Bad request.");
+  }
+
+  // Per-user daily limit so one account can't run up the bill.
+  const limit = Number(env.AI_DAILY_LIMIT || 300);
+  const day = new Date().toISOString().slice(0, 10);
+  const row = await env.DB.prepare(
+    "INSERT INTO ai_usage (user_id, day, count) VALUES (?, ?, 1) " +
+    "ON CONFLICT(user_id, day) DO UPDATE SET count = count + 1 RETURNING count"
+  ).bind(user.id, day).first();
+  if (row.count > limit) return aiError(429, `Daily limit of ${limit} entries reached. It resets at midnight UTC.`);
+
+  // Only forward the fields the app uses; the server picks the model.
+  const upstream = {
+    model: env.AI_MODEL || "claude-sonnet-5-5",
+    max_tokens: Math.min(Number(body.max_tokens) || 1000, AI_MAX_TOKENS),
+    messages: body.messages,
+  };
+  if (typeof body.system === "string") upstream.system = body.system;
+  if (Array.isArray(body.tools)) {
+    const tools = body.tools.filter((t) => t && AI_ALLOWED_TOOLS.has(t.type)).map((t) => ({ ...t, max_uses: Math.min(t.max_uses || 3, 3) }));
+    if (tools.length) upstream.tools = tools;
+  }
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify(upstream),
+  });
+  return new Response(res.body, {
+    status: res.status,
+    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+  });
 }
 
 async function startSession(env, claims) {
