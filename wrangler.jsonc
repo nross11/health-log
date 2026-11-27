@@ -19,5 +19,19 @@
     // Public by design: Google sign-in client IDs are not secrets.
     "GOOGLE_CLIENT_ID": ""
   },
-  "previews": {}
+  // Previews share the production database, so anything signed in and
+  // imported on a preview is already there when it goes live.
+  "previews": {
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_name": "compound",
+        "database_id": "5cfc7cf1-0208-43ac-abd5-15aad8323ee5",
+        "migrations_dir": "migrations"
+      }
+    ],
+    "vars": {
+      "GOOGLE_CLIENT_ID": ""
+    }
+  }
 }
