@@ -161,6 +161,13 @@
     if (/\b(didn t|didnt|doesn t|doesnt|don t|dont|isn t|isnt|wasn t|wasnt|won t|can t|cant|why|what|how|hmm+|huh|ok|okay|thanks|thank|please|wrong|broken|error)\b/.test(t)) return true;
     return t.split(" ").length > 6;
   }
+  // "i had a quarter pounder for lunch" -> "quarter pounder"
+  function stripFiller(p) {
+    var t = p.replace(/^(?:so\s+|today\s+|just\s+)?(?:i\s+)?(?:just\s+)?(?:had|ate|eaten|drank|got|grabbed|have had|ve had)\s+(?:a|an|some|the)?\s*/i, "")
+             .replace(/\s+(?:for|at)\s+(?:breakfast|lunch|dinner|brunch|a snack|snack)$/i, "")
+             .replace(/\s+(?:today|tonight|this morning|earlier)$/i, "").trim();
+    return t || p;
+  }
   var FOOD_HELP = 'Try "chicken bowl 650/45", "200g yogurt", "weighed 173.5" or "12k steps".';
 
   function foodEngine(system, messages) {
@@ -259,7 +266,7 @@
   }
 
   function parseFoodPart(part, library, stepsLogged, out) {
-    var p = part.trim();
+    var p = stripFiller(part.trim());
 
     // Weight: "weighed 173.5", "weight 173.5", "173.5 lb", "w 173.5"
     var w = /^(?:i\s+)?(?:weighed(?:\s+in)?(?:\s+at)?|weight(?:\s+(?:is|was))?|wt|w)\s*:?\s*(\d{2,3}(?:\.\d+)?)\s*(?:lbs?|pounds)?$/i.exec(p) ||
@@ -339,7 +346,9 @@
     }
 
     if (/^(hi|hey|hello|help|\?)/i.test(p)) return { error: FOOD_HELP };
-    if (looksLikeChat(p)) return { error: CHAT_HELP };
+    // Sentences go to Claude when estimates are on (it can tell a meal from a
+    // remark); otherwise they get the help text.
+    if (looksLikeChat(p)) return { unknown: true, error: CHAT_HELP };
     return { unknown: true, error: 'I don\'t know "' + p + '". Add cal/protein, like "' + p + ' 400/30", or save it to Foods first.' };
   }
 
