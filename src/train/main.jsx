@@ -324,7 +324,12 @@ function Session({ data, workout, onDone }) {
 
   const setOrder = (fn) => save((d) => { const w = d.workouts[workout.id]; w.order = fn(workoutExercises(d, w)); });
 
+  const notStarted = live && !workout.start;
+  const startClock = () => save((d) => { const w = d.workouts[workout.id]; if (!w.start) w.start = Date.now(); });
+  const discard = () => { save((d) => { delete d.workouts[workout.id]; }); onDone(null); };
+
   const onLogged = (set, isPr) => {
+    if (!workout.start) startClock();
     const secs = pref("restSec", 90);
     if (live && secs > 0) setRest({ until: Date.now() + secs * 1000, total: secs });
     if (isPr) flash("New best for " + set.exercise);
@@ -367,9 +372,11 @@ function Session({ data, workout, onDone }) {
         <button class="ct-back" onClick={() => onDone(null)} aria-label="Back">‹</button>
         <div class="ct-session-title">
           <b>{templateName(data, workout.template)}</b>
-          <span>{live ? fmtDuration(elapsed) : niceDate(workout.date)} · {sets.length} set{sets.length === 1 ? "" : "s"}</span>
+          <span class={notStarted ? "ct-setup" : ""}>{notStarted ? "Set up, then tap Start" : live ? fmtDuration(elapsed) : niceDate(workout.date)}{notStarted ? "" : " · " + sets.length + " set" + (sets.length === 1 ? "" : "s")}</span>
         </div>
-        {live ? <button class="ct-btn ct-primary" onClick={() => setConfirmFinish(true)}>Finish</button>
+        {notStarted && !sets.length && <button class="ct-btn ct-quiet" onClick={discard}>Discard</button>}
+        {notStarted ? <button class="ct-btn ct-go" onClick={startClock}>▶ Start</button>
+          : live ? <button class="ct-btn ct-primary" onClick={() => setConfirmFinish(true)}>Finish</button>
           : <button class="ct-btn" onClick={() => setMenu({ session: true })}>⋯</button>}
       </div>
 
@@ -498,7 +505,7 @@ function Home({ data, onOpen, onStart }) {
       {open ? (
         <button class="ct-resume" onClick={() => onOpen(open.id)}>
           <span>Resume {templateName(data, open.template)}</span>
-          <span class="ct-dim">{(open.sets || []).length} sets so far</span>
+          <span class="ct-dim">{open.start ? (open.sets || []).length + " sets so far" : "Not started yet"}</span>
         </button>
       ) : (
         <Fragment>
@@ -595,7 +602,8 @@ function Train() {
 
   const start = (templateId) => {
     const id = "w_" + todayIso() + "_" + uid();
-    save((d) => { d.workouts[id] = { date: todayIso(), template: templateId, start: Date.now(), end: null, closed: false, sets: [] }; });
+    // Opens in setup: the clock starts when you tap Start (or log the first set).
+    save((d) => { d.workouts[id] = { date: todayIso(), template: templateId, start: null, end: null, closed: false, sets: [] }; });
     setView({ session: id });
   };
 
