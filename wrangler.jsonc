@@ -17,7 +17,7 @@
   ],
   "vars": {
     // Public by design: Google sign-in client IDs are not secrets.
-    "GOOGLE_CLIENT_ID": ""
+    "GOOGLE_CLIENT_ID": "331747790926-5g1ijl2ooerpgrpqeln26b1t1bthagbv.apps.googleusercontent.com"
   },
   // Previews share the production database, so anything signed in and
   // imported on a preview is already there when it goes live.
@@ -31,7 +31,7 @@
       }
     ],
     "vars": {
-      "GOOGLE_CLIENT_ID": ""
+      "GOOGLE_CLIENT_ID": "331747790926-5g1ijl2ooerpgrpqeln26b1t1bthagbv.apps.googleusercontent.com"
     }
   }
 }
