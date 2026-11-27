@@ -23,6 +23,7 @@
   function words(s) { return norm(s).split(" ").filter(Boolean).map(singular); }
   function num(s) { return Number(String(s).replace(/,/g, "")); }
   function fmt(n) { return String(Math.round(n * 10) / 10); }
+  function capFirst(s) { s = String(s || "").trim(); return s.charAt(0).toUpperCase() + s.slice(1); }
   function titleCase(s) {
     return String(s).trim().replace(/\s+/g, " ").replace(/\b([a-z])/g, function (m) { return m.toUpperCase(); });
   }
@@ -101,8 +102,72 @@
   }
 
   // ---------- food log ----------
-  var ALCOHOL = /\b(beer|ipa|lager|stout|ale|cider|wine|prosecco|champagne|cocktail|margarita|martini|negroni|spritz|vodka|gin|rum|tequila|whiskey|whisky|bourbon|scotch|sake|hard seltzer)\b/i;
+  var ALCOHOL = /\b(beer|ipa|lager|stout|ale|cider|wine|prosecco|champagne|cocktail|margarita|martini|negroni|spritz|vodka|gin|rum|tequila|whiskey|whisky|bourbon|scotch|sake|hard seltzer|mixed drink|spirit|mezcal|porter)\b/i;
 
+  // Built-in drinks, so "wine" or "2 beers" logs without typing numbers.
+  // Rough calories for one typical serving; saved as estimates. A food of the
+  // same name saved in Foods always wins over these.
+  var DRINKS = [
+    { re: /\b(?:prosecco|champagne|cava|sparkling wine|bubbly)\b/, name: "Sparkling wine", cal: 90, pro: 0 },
+    { re: /\bwines?\b|\b(?:red|white|rose|rosé)\b/, name: "Wine", cal: 125, pro: 0 },
+    { re: /\b(?:light|lite)\s+beers?\b/, name: "Light beer", cal: 100, pro: 1 },
+    { re: /\b(?:ipa|ipas|double ipa)\b/, name: "IPA", cal: 200, pro: 2 },
+    { re: /\b(?:stout|stouts|porter|porters)\b/, name: "Stout", cal: 180, pro: 2 },
+    { re: /\b(?:hard seltzers?|seltzers?|white claws?)\b/, name: "Hard seltzer", cal: 100, pro: 0 },
+    { re: /\bciders?\b/, name: "Cider", cal: 200, pro: 0 },
+    { re: /\b(?:beers?|lagers?|ales?|pilsners?|brews?)\b/, name: "Beer", cal: 150, pro: 2 },
+    { re: /\bsake\b/, name: "Sake", cal: 180, pro: 1 },
+    { re: /\bmargaritas?\b/, name: "Margarita", cal: 250, pro: 0 },
+    { re: /\b(?:martinis?|negronis?|manhattans?|old fashioneds?)\b/, name: "Cocktail", cal: 180, pro: 0 },
+    { re: /\b(?:spritz|spritzes|aperol)\b/, name: "Spritz", cal: 150, pro: 0 },
+    { re: /\b(?:cocktails?|mojitos?|mixed drinks?)\b/, name: "Cocktail", cal: 200, pro: 0 },
+    { re: /\b(?:gin|vodka|rum|whiske?y|bourbon|tequila)\s+(?:and\s+|with\s+)?(?:tonic|soda|coke|cola|ginger|sprite|lime)\b/, name: "Mixed drink", cal: 150, pro: 0 },
+    { re: /\b(?:shots?|vodka|gin|rum|tequila|whiske?y|bourbon|scotch|mezcal)\b/, name: "Spirit (shot)", cal: 100, pro: 0 }
+  ];
+  var DRINK_FILLER = /^(?:a|an|one|two|three|four|five|six|\d+|x|of|glass|glasses|pint|pints|can|cans|bottle|bottles|shot|shots|drink|drinks|large|small|big|of|dry|craft|house|neat|on|the|rocks|soda|tonic|and|with|my|had|some|cold|draft|draught|pour|coke|cola|ginger|sprite|lime)$/;
+  var DRINK_WORDS = /^(?:prosecco|champagne|cava|sparkling|bubbly|wine|wines|red|white|rose|rosé|light|lite|beer|beers|ipa|ipas|double|stout|stouts|porter|porters|hard|seltzer|seltzers|claw|claws|cider|ciders|lager|lagers|ale|ales|pilsner|pilsners|brew|brews|sake|margarita|margaritas|martini|martinis|negroni|negronis|manhattan|manhattans|old|fashioned|fashioneds|spritz|spritzes|aperol|cocktail|cocktails|mojito|mojitos|mixed|vodka|gin|rum|tequila|whiskey|whisky|bourbon|scotch|mezcal)$/;
+  var COUNT_WORDS = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6 };
+
+  // "wine", "2 beers", "a glass of red wine", "two pints of lager", "beer x2".
+  // Returns { drink, count, scale } or null.
+  function matchDrink(text) {
+    var t = norm(text).replace(/\bx\s*(\d+)\b/g, "x $1");
+    if (!t || /\d+\s*\/\s*\d+/.test(t)) return null;
+    var ws = t.split(" ");
+    if (ws.length > 7) return null;
+    if (!ws.every(function (w) { return DRINK_FILLER.test(w) || DRINK_WORDS.test(w); })) return null;
+    var drink = null;
+    for (var i = 0; i < DRINKS.length; i++) if (DRINKS[i].re.test(t)) { drink = DRINKS[i]; break; }
+    if (!drink) return null;
+    var count = 1;
+    var lead = /^(\d+|a|an|one|two|three|four|five|six)\b/.exec(t);
+    var tail = /\bx\s*(\d+)$/.exec(t) || /\s(\d+)$/.exec(t);
+    if (lead) count = /^\d/.test(lead[1]) ? Number(lead[1]) : COUNT_WORDS[lead[1]];
+    else if (tail) count = Number(tail[1]);
+    if (!(count >= 1 && count <= 12)) return null;
+    var scale = 1;
+    if (/\bpints?\b/.test(t) && /beer|ipa|stout|cider|lager|ale|pilsner|brew|porter/i.test(drink.name + " " + t)) scale = 1.33;
+    if (/\bbottles?\b/.test(t) && drink.name === "Wine") scale = 5;
+    if (/\blarge\b/.test(t) && drink.name === "Wine") scale = 1.4;
+    return { drink: drink, count: Math.round(count), scale: scale };
+  }
+
+  var CHAT_HELP = 'I can only log food, drinks, weight and steps. Try "chicken bowl 650/45", "wine" or "12k steps". To fix an entry: "muffin should be 190/25". To remove one, tap \u00d7 next to it.';
+  // Sentences and remarks that aren't a food name: answer with help instead of
+  // treating them as an unknown food (and never send them off for an estimate).
+  function looksLikeChat(p) {
+    var t = norm(p);
+    if (/[?]/.test(p)) return true;
+    if (/\b(didn t|didnt|doesn t|doesnt|don t|dont|isn t|isnt|wasn t|wasnt|won t|can t|cant|why|what|how|hmm+|huh|ok|okay|thanks|thank|please|wrong|broken|error)\b/.test(t)) return true;
+    return t.split(" ").length > 6;
+  }
+  // "i had a quarter pounder for lunch" -> "quarter pounder"
+  function stripFiller(p) {
+    var t = p.replace(/^(?:so\s+|today\s+|just\s+)?(?:i\s+)?(?:just\s+)?(?:had|ate|eaten|drank|got|grabbed|have had|ve had)\s+(?:a|an|some|the)?\s*/i, "")
+             .replace(/\s+(?:for|at)\s+(?:breakfast|lunch|dinner|brunch|a snack|snack)$/i, "")
+             .replace(/\s+(?:today|tonight|this morning|earlier)$/i, "").trim();
+    return t || p;
+  }
   var FOOD_HELP = 'Try "chicken bowl 650/45", "200g yogurt", "weighed 173.5" or "12k steps".';
 
   function foodEngine(system, messages) {
@@ -142,6 +207,26 @@
       return reply(out, "Removed " + hit.name + ".");
     }
 
+    // Corrections: "that muffin should be 190/25", "change muffin to 190/25",
+    // "make that 190/25", "actually 190/25". Replaces the logged entry.
+    var fix = correction(text);
+    if (fix) {
+      if (out.date) return reply({ reply: "", add: [], remove: [], learn: [], weight: null, steps: null, date: null }, "To fix an entry on another day, go to that day with the arrows, then type the fix there.");
+      var target = fix.name ? findLogged(logged, fix.name) : logged[logged.length - 1];
+      if (!target) {
+        return reply(out, fix.name
+          ? 'Nothing logged ' + (out.date ? "that day" : "today") + ' matches "' + fix.name + '". Tap \u00d7 on the entry and log it again.'
+          : "Nothing logged yet to fix.");
+      }
+      out.remove.push(target.name);
+      // A saved food's name would make the app re-apply the saved numbers, so
+      // an edited copy of one gets its own name.
+      var isSaved = library.some(function (f) { return String(f.name).toLowerCase() === String(target.name).toLowerCase(); });
+      var newName = isSaved ? target.name.replace(/\s*\(edited\)$/, "") + " (edited)" : capFirst(target.name);
+      out.add.push({ food: null, qty: null, unit: null, name: newName, cal: fix.cal, pro: fix.pro, estimate: false, alcohol: ALCOHOL.test(target.name) });
+      return reply(out, "Changed " + target.name.replace(/\s*\(edited\)$/, "") + " to " + fix.cal + " cal / " + fix.pro + "g" + dayNote + ".");
+    }
+
     // Save to library: "save greek yogurt 59/10 per 100g", "save egg 70/6 per egg"
     var sv = /^(?:save|learn|remember|add)\s+(.+?)\s+(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*(?:g\b)?\s*(?:(?:per|\/|a|each)\s+(.+))?(?:\s+to\s+(?:foods|library))?$/i.exec(text);
     if (sv && /^(save|learn|remember)\b/i.test(text) || (sv && /\bto\s+(foods|library)\b/i.test(text))) {
@@ -158,7 +243,11 @@
     var parts = splitItems(text);
     for (var i = 0; i < parts.length; i++) {
       var r = parseFoodPart(parts[i], library, stepsLogged, out);
-      if (r.error) return reply({ reply: "", add: [], remove: [], learn: [], weight: null, steps: null, date: null }, r.error);
+      if (r.error) {
+        var failed = reply({ reply: "", add: [], remove: [], learn: [], weight: null, steps: null, date: null }, r.error);
+        if (r.unknown) Object.defineProperty(failed, "unknownFood", { value: true, enumerable: false });
+        return failed;
+      }
       replies.push(r.text);
     }
     return reply(out, joinReplies(replies) + dayNote + ".");
@@ -170,14 +259,14 @@
     pieces.forEach(function (p) {
       // Split on commas or " and " only when every piece has its own numbers.
       var byComma = p.split(/\s*,\s*(?![0-9]{3}\b)|\s+and\s+/i).filter(Boolean);
-      if (byComma.length > 1 && byComma.every(function (b) { return /\d/.test(b) || /^(undo)$/i.test(b); })) outp.push.apply(outp, byComma);
+      if (byComma.length > 1 && byComma.every(function (b) { return /\d/.test(b) || /^(undo)$/i.test(b) || matchDrink(b); })) outp.push.apply(outp, byComma);
       else outp.push(p);
     });
     return outp;
   }
 
   function parseFoodPart(part, library, stepsLogged, out) {
-    var p = part.trim();
+    var p = stripFiller(part.trim());
 
     // Weight: "weighed 173.5", "weight 173.5", "173.5 lb", "w 173.5"
     var w = /^(?:i\s+)?(?:weighed(?:\s+in)?(?:\s+at)?|weight(?:\s+(?:is|was))?|wt|w)\s*:?\s*(\d{2,3}(?:\.\d+)?)\s*(?:lbs?|pounds)?$/i.exec(p) ||
@@ -207,12 +296,15 @@
     var cp2 = /^(.*?)\s*(\d+(?:\.\d+)?)\s*(?:cal|cals|kcal|calories)\b[\s,]*(?:(\d+(?:\.\d+)?)\s*(?:g|grams?)?\s*(?:p|pro|protein)\b)?\s*(.*)$/i.exec(p);
     var m = cp || cp2;
     if (m) {
-      var name = (m[1] + " " + (m[4] || "")).replace(/\s+/g, " ").replace(/^[-–:,\s]+|[-–:,\s]+$/g, "");
+      // "~" before the numbers keeps an earlier estimate marked as one (used by the recent-item chips).
+      var approx = /~\s*$/.test(m[1]);
+      var name = (m[1].replace(/~\s*$/, "") + " " + (m[4] || "")).replace(/\s+/g, " ").replace(/^[-–:,\s]+|[-–:,\s]+$/g, "");
       if (!name) return { error: 'Add a name, like "chicken bowl ' + m[2] + "/" + (m[3] || 0) + '".' };
+      name = capFirst(name);
       var cal = Math.round(num(m[2])), pro = Math.round(num(m[3] || 0));
       if (cal > 5000) return { error: "Calories over 5,000 for one item looks like a typo." };
       // Typed numbers win: keep the name as typed, even if it resembles a saved food.
-      out.add.push({ food: null, qty: null, unit: null, name: name, cal: cal, pro: pro, estimate: false, alcohol: ALCOHOL.test(name) });
+      out.add.push({ food: null, qty: null, unit: null, name: name, cal: cal, pro: pro, estimate: approx, alcohol: ALCOHOL.test(name) });
       return { text: name + " " + cal + " cal / " + pro + "g" };
     }
 
@@ -244,8 +336,20 @@
       return { text: (unit === "g" ? fmt(qty) + "g " : (qty !== 1 ? fmt(qty) + " x " : "")) + food.name };
     }
 
+    var dm = matchDrink(p);
+    if (dm) {
+      var dName = dm.drink.name + (dm.scale === 1.33 ? " (pint)" : dm.scale === 5 ? " (bottle)" : dm.scale === 1.4 ? " (large)" : "");
+      for (var k = 0; k < dm.count; k++) {
+        out.add.push({ food: null, qty: null, unit: null, name: dName, cal: Math.round(dm.drink.cal * dm.scale), pro: Math.round(dm.drink.pro * dm.scale), estimate: true, alcohol: true });
+      }
+      return { text: (dm.count > 1 ? dm.count + " x " : "") + dName.toLowerCase() + " (about " + Math.round(dm.drink.cal * dm.scale) + " cal" + (dm.count > 1 ? " each" : "") + ")" };
+    }
+
     if (/^(hi|hey|hello|help|\?)/i.test(p)) return { error: FOOD_HELP };
-    return { error: 'I don\'t know "' + p + '". Add cal/protein, like "' + p + ' 400/30", or save it to Foods first.' };
+    // Sentences go to Claude when estimates are on (it can tell a meal from a
+    // remark); otherwise they get the help text.
+    if (looksLikeChat(p)) return { unknown: true, error: CHAT_HELP };
+    return { unknown: true, error: 'I don\'t know "' + p + '". Add cal/protein, like "' + p + ' 400/30", or save it to Foods first.' };
   }
 
   function matchLibrary(library, name) {
@@ -259,6 +363,22 @@
       return qw.every(function (w) { return fw.indexOf(w) >= 0; });
     });
     return hits.length === 1 ? hits[0] : null;
+  }
+
+  function correction(text) {
+    var t = text.trim().replace(/[.!]+$/, "");
+    var nums = "(\\d+(?:\\.\\d+)?)\\s*\\/\\s*(\\d+(?:\\.\\d+)?)\\s*g?";
+    var lead = "^(?:no|nope|oops|sorry|wait|actually)?[,\\s]*";
+    // "make that 190/25", "actually 190/25", "no, 190/25", "should be 190/25"
+    var m = new RegExp(lead + "(?:make\\s+(?:that|it)|change\\s+(?:that|it)\\s+to|(?:that|it)\\s+(?:should\\s+(?:be|have\\s+been)|was|is))?\\s*(?:should\\s+be\\s+)?" + nums + "$", "i").exec(t);
+    if (m && /^(no|nope|oops|sorry|wait|actually|make|change|that|it|should)\b/i.test(t)) return { name: null, cal: Math.round(num(m[1])), pro: Math.round(num(m[2])) };
+    // "that muffin should be 190/25", "the muffin was 190/25", "muffin should be 190/25"
+    m = new RegExp(lead + "(?:the|that|my)?\\s*(.+?)\\s+(?:should\\s+(?:be|have\\s+been|'?ve\\s+been)|was\\s+actually|is\\s+actually|was\\s+really|is\\s+really)\\s+" + nums + "$", "i").exec(t);
+    if (m) return { name: m[1], cal: Math.round(num(m[2])), pro: Math.round(num(m[3])) };
+    // "change muffin to 190/25", "fix muffin 190/25", "update muffin: 190/25"
+    m = new RegExp(lead + "(?:change|correct|fix|update|edit|set)\\s+(?:the\\s+|that\\s+|my\\s+)?(.+?)\\s*(?:to|=|:|->|\\u2192)?\\s+" + nums + "$", "i").exec(t);
+    if (m) return { name: m[1], cal: Math.round(num(m[2])), pro: Math.round(num(m[3])) };
+    return null;
   }
 
   function findLogged(logged, name) {
@@ -451,20 +571,42 @@
     var system = String(body.system || "");
     var messages = Array.isArray(body.messages) ? body.messages : [];
     var result;
-    if (/logging engine for a food tracker/.test(system)) result = foodEngine(system, messages);
+    if (/logging engine for a food tracker/.test(system)) {
+      result = foodEngine(system, messages);
+      if (result.unknownFood) return { status: 200, result: result, unknownFood: true };
+    }
     else if (/logging engine for a workout tracker/.test(system)) result = trainEngine(system, messages);
     else if (/which muscle group an exercise primarily trains/.test(system)) result = {}; // pick muscles from the dropdown instead
     else return { status: 501, error: "Screenshot import is turned off for now. Log sets by typing them, or wait for the Fitbod connection." };
     return { status: 200, result: result };
   }
 
-  var api = { respond: respond, foodEngine: foodEngine, trainEngine: trainEngine, parseSets: parseSets, pullDate: pullDate };
+  var api = { respond: respond, matchDrink: matchDrink, correction: correction, foodEngine: foodEngine, trainEngine: trainEngine, parseSets: parseSets, pullDate: pullDate };
 
   if (typeof module !== "undefined" && module.exports) { module.exports = api; return; }
   root.compoundEngine = api;
 
-  // Answer the app's AI requests locally.
+  // Answer the app's AI requests locally. When the local rules don't know a
+  // food and the server has Claude switched on, hand that one entry to the
+  // server instead, which estimates it.
   var realFetch = root.fetch.bind(root);
+  var aiState = { enabled: null, checkedAt: 0 };
+  function aiEnabled() {
+    if (aiState.enabled !== null && Date.now() - aiState.checkedAt < 10 * 60 * 1000) return Promise.resolve(aiState.enabled);
+    return realFetch("/api/ai/status", { credentials: "same-origin" })
+      .then(function (res) { return res.ok ? res.json() : { enabled: false }; })
+      .catch(function () { return { enabled: false }; })
+      .then(function (j) { aiState = { enabled: !!(j && j.enabled), checkedAt: Date.now() }; return aiState.enabled; });
+  }
+  api.aiEnabled = aiEnabled;
+
+  function localResponse(r) {
+    var payload = r.status === 200
+      ? { content: [{ type: "text", text: JSON.stringify(r.result) }] }
+      : { type: "error", error: { message: r.error } };
+    return new Response(JSON.stringify(payload), { status: r.status, headers: { "Content-Type": "application/json" } });
+  }
+
   root.fetch = function (input, init) {
     var url = typeof input === "string" ? input : (input && input.url) || "";
     if (url !== "/api/ai") return realFetch(input, init);
@@ -472,9 +614,19 @@
     try { body = JSON.parse((init && init.body) || "{}"); } catch (e) {}
     var r;
     try { r = respond(body); } catch (e) { r = { status: 500, error: "Couldn't read that. " + FOOD_HELP }; }
-    var payload = r.status === 200
-      ? { content: [{ type: "text", text: JSON.stringify(r.result) }] }
-      : { type: "error", error: { message: r.error } };
-    return Promise.resolve(new Response(JSON.stringify(payload), { status: r.status, headers: { "Content-Type": "application/json" } }));
+    if (!r.unknownFood) return Promise.resolve(localResponse(r));
+    return aiEnabled().then(function (on) {
+      if (!on) return localResponse(r);
+      return realFetch("/api/ai", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ system: body.system, messages: body.messages }) })
+        .then(function (res) {
+          if (res.ok) return res;
+          // Show the server's reason as a plain reply instead of an error code.
+          return res.json().catch(function () { return {}; }).then(function (j) {
+            var msg = (j && j.error && j.error.message) || r.result.reply;
+            return localResponse({ status: 200, result: { reply: msg, add: [], remove: [], learn: [], weight: null, steps: null, date: null } });
+          });
+        })
+        .catch(function () { return localResponse(r); });
+    });
   };
-})(typeof window !== "undefined" ? window : this);
+})(typeof window !== "undefined" ? window : globalThis);

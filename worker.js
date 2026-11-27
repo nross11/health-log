@@ -1,5 +1,8 @@
-// Compound API: Google sign-in, sessions, and per-user data sync.
+// Compound API: Google sign-in, sessions, per-user data sync, and the
+// optional Claude fallback for food entries the app can't read on its own.
 // Static files are served by the assets binding; only /api/* reaches this code.
+
+import Anthropic from "@anthropic-ai/sdk";
 
 const SESSION_COOKIE = "hl_session";
 const SESSION_DAYS = 180;
@@ -63,6 +66,14 @@ async function handleApi(request, env, url) {
   const user = await currentUser(request, env);
   if (!user) return json({ error: "signed_out" }, 401);
 
+  if (pathname === "/api/ai/status" && method === "GET") {
+    return json({ enabled: aiConfigured(env), dailyLimit: aiDailyLimit(env) });
+  }
+
+  if (pathname === "/api/ai" && method === "POST") {
+    return estimateFood(request, env, user);
+  }
+
   if (pathname === "/api/me" && method === "GET") {
     return json({ email: user.email, name: user.name });
   }
@@ -115,6 +126,101 @@ async function handleApi(request, env, url) {
   }
 
   return json({ error: "not_found" }, 404);
+}
+
+// ---- Claude fallback for food entries ----
+// The app parses most entries on the device (engine.js). Only a food it
+// doesn't recognise comes here, and only when an ANTHROPIC_API_KEY secret is
+// set. Without the secret this stays off and the app asks for cal/protein.
+
+const AI_MODEL = "claude-haiku-5-5";
+const AI_MAX_TOKENS = 800;
+const AI_MAX_BODY_BYTES = 60_000;
+const AI_PROMPT_PREFIX = "You are the logging engine for a food tracker.";
+
+function aiConfigured(env) {
+  return Boolean(env.ANTHROPIC_API_KEY) && env.AI_ENABLED !== "0";
+}
+
+function aiDailyLimit(env) {
+  const n = Number(env.AI_DAILY_LIMIT);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 50;
+}
+
+function aiError(status, message) {
+  return json({ type: "error", error: { type: "estimate_error", message } }, status);
+}
+
+async function estimateFood(request, env, user) {
+  if (!aiConfigured(env)) return aiError(503, "Estimates aren't switched on. Add cal/protein, like \"burrito 900/40\".");
+
+  const raw = await request.text();
+  if (raw.length > AI_MAX_BODY_BYTES) return aiError(413, "That entry is too long.");
+  let body;
+  try { body = JSON.parse(raw); } catch { return aiError(400, "Bad request."); }
+  const { system, messages } = body || {};
+  // Only the app's own food-logging prompt is accepted, with plain-text turns.
+  if (typeof system !== "string" || !system.startsWith(AI_PROMPT_PREFIX) || system.length > 40_000) {
+    return aiError(400, "Bad request.");
+  }
+  if (!Array.isArray(messages) || messages.length === 0 || messages.length > 16 ||
+      !messages.every((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.length <= 4000)) {
+    return aiError(400, "Bad request.");
+  }
+
+  // Per-user daily cap so one account can't run up the bill.
+  const limit = aiDailyLimit(env);
+  const day = new Date().toISOString().slice(0, 10);
+  await env.DB.prepare(
+    "CREATE TABLE IF NOT EXISTS ai_usage (user_id TEXT NOT NULL, day TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (user_id, day))"
+  ).run();
+  const row = await env.DB.prepare(
+    "INSERT INTO ai_usage (user_id, day, count) VALUES (?, ?, 1) " +
+    "ON CONFLICT(user_id, day) DO UPDATE SET count = count + 1 RETURNING count"
+  ).bind(user.id, day).first();
+  if (row.count > limit) {
+    return aiError(429, `You've used today's ${limit} estimates. Add cal/protein for now, like "burrito 900/40". It resets at midnight UTC.`);
+  }
+
+  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 20_000 });
+  let message;
+  try {
+    message = await client.messages.create({
+      model: env.AI_MODEL || AI_MODEL,
+      max_tokens: AI_MAX_TOKENS,
+      // A short JSON reply; thinking adds time without helping here.
+      thinking: { type: "disabled" },
+      system,
+      messages,
+    });
+  } catch (err) {
+    console.error("estimate failed", err?.status, err?.message);
+    if (err instanceof Anthropic.RateLimitError) return aiError(429, "Estimates are busy right now. Try again in a minute, or add cal/protein.");
+    if (err instanceof Anthropic.AuthenticationError) return aiError(503, "Estimates aren't set up correctly on the server.");
+    if (err instanceof Anthropic.APIConnectionError) return aiError(502, "Couldn't reach the estimate service. Try again, or add cal/protein.");
+    return aiError(502, "The estimate failed. Try again, or add cal/protein.");
+  }
+
+  if (message.stop_reason === "refusal") return aiError(422, "Couldn't estimate that one. Add cal/protein instead.");
+  const text = message.content.filter((b) => b.type === "text").map((b) => b.text).join("");
+  if (!text.trim()) return aiError(502, "The estimate came back empty. Try again, or add cal/protein.");
+  // Same shape the app has always read: text blocks holding the JSON answer.
+  return json({ content: [{ type: "text", text: capitalizeNames(text) }] }, 200, { "Cache-Control": "no-store" });
+}
+
+// Food names start with a capital letter, the same as typed entries.
+function capitalizeNames(text) {
+  try {
+    const obj = JSON.parse(text.replace(/```json|```/g, "").trim());
+    if (Array.isArray(obj.add)) {
+      for (const item of obj.add) {
+        if (item && typeof item.name === "string") item.name = item.name.charAt(0).toUpperCase() + item.name.slice(1);
+      }
+    }
+    return JSON.stringify(obj);
+  } catch {
+    return text;
+  }
 }
 
 async function startSession(env, claims) {
