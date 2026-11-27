@@ -205,7 +205,22 @@ async function estimateFood(request, env, user) {
   const text = message.content.filter((b) => b.type === "text").map((b) => b.text).join("");
   if (!text.trim()) return aiError(502, "The estimate came back empty. Try again, or add cal/protein.");
   // Same shape the app has always read: text blocks holding the JSON answer.
-  return json({ content: [{ type: "text", text }] }, 200, { "Cache-Control": "no-store" });
+  return json({ content: [{ type: "text", text: capitalizeNames(text) }] }, 200, { "Cache-Control": "no-store" });
+}
+
+// Food names start with a capital letter, the same as typed entries.
+function capitalizeNames(text) {
+  try {
+    const obj = JSON.parse(text.replace(/```json|```/g, "").trim());
+    if (Array.isArray(obj.add)) {
+      for (const item of obj.add) {
+        if (item && typeof item.name === "string") item.name = item.name.charAt(0).toUpperCase() + item.name.slice(1);
+      }
+    }
+    return JSON.stringify(obj);
+  } catch {
+    return text;
+  }
 }
 
 async function startSession(env, claims) {

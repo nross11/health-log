@@ -29,7 +29,8 @@
     return e.name + " " + (e.estimate ? "~" : "") + Math.round(e.cal || 0) + "/" + Math.round(e.pro || 0);
   }
   function entryLabel(e) {
-    return e.name.length > 26 ? e.name.slice(0, 25) + "…" : e.name;
+    var n = String(e.name).charAt(0).toUpperCase() + String(e.name).slice(1);
+    return n.length > 26 ? n.slice(0, 25) + "…" : n;
   }
 
   function knownFoods(log) {

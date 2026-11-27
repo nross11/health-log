@@ -23,6 +23,7 @@
   function words(s) { return norm(s).split(" ").filter(Boolean).map(singular); }
   function num(s) { return Number(String(s).replace(/,/g, "")); }
   function fmt(n) { return String(Math.round(n * 10) / 10); }
+  function capFirst(s) { s = String(s || "").trim(); return s.charAt(0).toUpperCase() + s.slice(1); }
   function titleCase(s) {
     return String(s).trim().replace(/\s+/g, " ").replace(/\b([a-z])/g, function (m) { return m.toUpperCase(); });
   }
@@ -214,7 +215,7 @@
       // A saved food's name would make the app re-apply the saved numbers, so
       // an edited copy of one gets its own name.
       var isSaved = library.some(function (f) { return String(f.name).toLowerCase() === String(target.name).toLowerCase(); });
-      var newName = isSaved ? target.name.replace(/\s*\(edited\)$/, "") + " (edited)" : target.name;
+      var newName = isSaved ? target.name.replace(/\s*\(edited\)$/, "") + " (edited)" : capFirst(target.name);
       out.add.push({ food: null, qty: null, unit: null, name: newName, cal: fix.cal, pro: fix.pro, estimate: false, alcohol: ALCOHOL.test(target.name) });
       return reply(out, "Changed " + target.name.replace(/\s*\(edited\)$/, "") + " to " + fix.cal + " cal / " + fix.pro + "g" + dayNote + ".");
     }
@@ -292,6 +293,7 @@
       var approx = /~\s*$/.test(m[1]);
       var name = (m[1].replace(/~\s*$/, "") + " " + (m[4] || "")).replace(/\s+/g, " ").replace(/^[-–:,\s]+|[-–:,\s]+$/g, "");
       if (!name) return { error: 'Add a name, like "chicken bowl ' + m[2] + "/" + (m[3] || 0) + '".' };
+      name = capFirst(name);
       var cal = Math.round(num(m[2])), pro = Math.round(num(m[3] || 0));
       if (cal > 5000) return { error: "Calories over 5,000 for one item looks like a typo." };
       // Typed numbers win: keep the name as typed, even if it resembles a saved food.
