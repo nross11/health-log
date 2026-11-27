@@ -1,4 +1,4 @@
-// Health Log API: Google sign-in, sessions, and per-user data sync.
+// Compound API: Google sign-in, sessions, and per-user data sync.
 // Static files are served by the assets binding; only /api/* reaches this code.
 
 const SESSION_COOKIE = "hl_session";

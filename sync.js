@@ -1,4 +1,4 @@
-// Health Log sync layer.
+// Compound sync layer.
 // The app reads and writes through window.storage; this file provides that
 // object, keeps localStorage as the on-device copy, and syncs the main log
 // key with the signed-in user's copy on the server. It loads app.js once the

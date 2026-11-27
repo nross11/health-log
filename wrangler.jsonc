@@ -1,5 +1,5 @@
 {
-  "name": "health-log",
+  "name": "compound",
   "main": "worker.js",
   "compatibility_date": "2026-11-01",
   "assets": {
@@ -10,8 +10,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "health-log",
-      "database_id": "648f5cef-e576-481d-b43f-b6e56b2be428",
+      "database_name": "compound",
+      "database_id": "5cfc7cf1-0208-43ac-abd5-15aad8323ee5",
       "migrations_dir": "migrations"
     }
   ],
