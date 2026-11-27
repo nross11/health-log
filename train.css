@@ -25,6 +25,8 @@
 .ct-dim { color: var(--ct-dim); }
 .ct-icon { width: 36px; height: 36px; border-radius: 10px; color: var(--ct-dim) !important; font-size: 18px; flex: none; }
 .ct-icon:hover { background: var(--ct-card); }
+.ct-swap { flex: none; height: 32px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--ct-line) !important; color: var(--ct-dim) !important; font-size: 13px !important; white-space: nowrap; }
+.ct-swap:active { background: var(--ct-card) !important; }
 
 /* home */
 .ct-home { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
@@ -69,6 +71,7 @@
 .ct-card-title span:first-child { color: var(--ct-strong); font-weight: 600; font-size: 16px; }
 .ct-tag { font-size: 11px; color: var(--ct-dim); border: 1px solid var(--ct-line); border-radius: 999px; padding: 1px 7px; white-space: nowrap; }
 .ct-last { font-size: 12.5px; color: var(--ct-dim); margin: 2px 0 8px; }
+.ct-last .ct-tag { margin-right: 4px; }
 .ct-best { color: var(--ct-faint); }
 .ct-sets { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .ct-set { width: 100%; display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; background: rgba(94, 234, 212, .07) !important; text-align: left; font-variant-numeric: tabular-nums; }

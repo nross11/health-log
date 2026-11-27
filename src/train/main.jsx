@@ -110,7 +110,7 @@ function RestTimer({ rest, setRest }) {
 
 // ---------- exercise card in a session ----------
 
-function ExerciseCard({ data, workout, name, index, count, onLogged, onMenu, onHistory, live }) {
+function ExerciseCard({ data, workout, name, index, count, onLogged, onMenu, onSwap, onHistory, live }) {
   const timed = isTimed(data, name);
   const info = exerciseInfo(data, name);
   const sets = (workout.sets || []).filter((s) => s.exercise === name);
@@ -155,11 +155,12 @@ function ExerciseCard({ data, workout, name, index, count, onLogged, onMenu, onH
       <header class="ct-card-head">
         <button class="ct-card-title" onClick={onHistory}>
           <span>{name}</span>
-          {info.muscle && <span class="ct-tag">{info.muscle}</span>}
         </button>
+        <button class="ct-swap" onClick={onSwap} aria-label={"Swap " + name + " for another exercise"}>⇄ Swap</button>
         <button class="ct-icon" onClick={onMenu} aria-label={"Options for " + name}>⋯</button>
       </header>
       <div class="ct-last">
+        {info.muscle && <span class="ct-tag">{info.muscle}</span>}{" "}
         {last ? <Fragment>Last · {niceDate(last.date)}: {last.sets.map(fmtSet).join(", ")}</Fragment> : <span class="ct-dim">First time</span>}
         {best && history.length > 1 && <span class="ct-best"> · Best {fmtSet(best)}</span>}
       </div>
@@ -210,7 +211,7 @@ function EditSet({ set, timed, workoutId, onClose }) {
 
 // ---------- pick / create exercise ----------
 
-function ExercisePicker({ data, title, exclude, onPick, onClose }) {
+function ExercisePicker({ data, title, exclude, prefer, onPick, onClose }) {
   const [q, setQ] = useState("");
   const [creating, setCreating] = useState(false);
   const [muscle, setMuscle] = useState("");
@@ -218,7 +219,8 @@ function ExercisePicker({ data, title, exclude, onPick, onClose }) {
   const all = (data.exercises || []).filter((e) => !(exclude || []).includes(e.name));
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const list = all.filter((e) => words.every((w) => e.name.toLowerCase().includes(w)))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    // When swapping, exercises for the same muscle come first.
+    .sort((a, b) => (prefer ? (b.muscle === prefer) - (a.muscle === prefer) : 0) || a.name.localeCompare(b.name));
   const exact = all.some((e) => e.name.toLowerCase() === q.trim().toLowerCase());
   const create = () => {
     const name = q.trim().replace(/\s+/g, " ").replace(/\b([a-z])/g, (m) => m.toUpperCase());
@@ -374,7 +376,7 @@ function Session({ data, workout, onDone }) {
       <div class="ct-cards">
         {names.map((n, i) => (
           <ExerciseCard key={workout.id + n} data={data} workout={workout} name={n} index={i} count={names.length}
-            onLogged={onLogged} onMenu={() => setMenu({ name: n, index: i })} onHistory={() => setHistoryFor(n)} live />
+            onLogged={onLogged} onMenu={() => setMenu({ name: n, index: i })} onSwap={() => setPicker({ mode: "swap", name: n })} onHistory={() => setHistoryFor(n)} live />
         ))}
         <button class="ct-add" onClick={() => setPicker({ mode: "add" })}>+ Add exercise</button>
       </div>
@@ -415,6 +417,7 @@ function Session({ data, workout, onDone }) {
 
       {picker && (
         <ExercisePicker data={data} title={picker.mode === "swap" ? "Swap " + picker.name : "Add exercise"} exclude={names}
+          prefer={picker.mode === "swap" ? exerciseInfo(data, picker.name).muscle : null}
           onClose={() => setPicker(null)}
           onPick={(name) => {
             if (picker.mode === "swap") {
