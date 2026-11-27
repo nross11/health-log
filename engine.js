@@ -151,6 +151,15 @@
     return { drink: drink, count: Math.round(count), scale: scale };
   }
 
+  var CHAT_HELP = 'I can only log food, drinks, weight and steps. Try "chicken bowl 650/45", "wine" or "12k steps". To fix an entry: "muffin should be 190/25". To remove one, tap \u00d7 next to it.';
+  // Sentences and remarks that aren't a food name: answer with help instead of
+  // treating them as an unknown food (and never send them off for an estimate).
+  function looksLikeChat(p) {
+    var t = norm(p);
+    if (/[?]/.test(p)) return true;
+    if (/\b(didn t|didnt|doesn t|doesnt|don t|dont|isn t|isnt|wasn t|wasnt|won t|can t|cant|why|what|how|hmm+|huh|ok|okay|thanks|thank|please|wrong|broken|error)\b/.test(t)) return true;
+    return t.split(" ").length > 6;
+  }
   var FOOD_HELP = 'Try "chicken bowl 650/45", "200g yogurt", "weighed 173.5" or "12k steps".';
 
   function foodEngine(system, messages) {
@@ -188,6 +197,26 @@
       if (!hit) return reply(out, 'Nothing logged matches "' + rm[1] + '".');
       out.remove.push(hit.name);
       return reply(out, "Removed " + hit.name + ".");
+    }
+
+    // Corrections: "that muffin should be 190/25", "change muffin to 190/25",
+    // "make that 190/25", "actually 190/25". Replaces the logged entry.
+    var fix = correction(text);
+    if (fix) {
+      if (out.date) return reply({ reply: "", add: [], remove: [], learn: [], weight: null, steps: null, date: null }, "To fix an entry on another day, go to that day with the arrows, then type the fix there.");
+      var target = fix.name ? findLogged(logged, fix.name) : logged[logged.length - 1];
+      if (!target) {
+        return reply(out, fix.name
+          ? 'Nothing logged ' + (out.date ? "that day" : "today") + ' matches "' + fix.name + '". Tap \u00d7 on the entry and log it again.'
+          : "Nothing logged yet to fix.");
+      }
+      out.remove.push(target.name);
+      // A saved food's name would make the app re-apply the saved numbers, so
+      // an edited copy of one gets its own name.
+      var isSaved = library.some(function (f) { return String(f.name).toLowerCase() === String(target.name).toLowerCase(); });
+      var newName = isSaved ? target.name.replace(/\s*\(edited\)$/, "") + " (edited)" : target.name;
+      out.add.push({ food: null, qty: null, unit: null, name: newName, cal: fix.cal, pro: fix.pro, estimate: false, alcohol: ALCOHOL.test(target.name) });
+      return reply(out, "Changed " + target.name.replace(/\s*\(edited\)$/, "") + " to " + fix.cal + " cal / " + fix.pro + "g" + dayNote + ".");
     }
 
     // Save to library: "save greek yogurt 59/10 per 100g", "save egg 70/6 per egg"
@@ -308,6 +337,7 @@
     }
 
     if (/^(hi|hey|hello|help|\?)/i.test(p)) return { error: FOOD_HELP };
+    if (looksLikeChat(p)) return { error: CHAT_HELP };
     return { unknown: true, error: 'I don\'t know "' + p + '". Add cal/protein, like "' + p + ' 400/30", or save it to Foods first.' };
   }
 
@@ -322,6 +352,22 @@
       return qw.every(function (w) { return fw.indexOf(w) >= 0; });
     });
     return hits.length === 1 ? hits[0] : null;
+  }
+
+  function correction(text) {
+    var t = text.trim().replace(/[.!]+$/, "");
+    var nums = "(\\d+(?:\\.\\d+)?)\\s*\\/\\s*(\\d+(?:\\.\\d+)?)\\s*g?";
+    var lead = "^(?:no|nope|oops|sorry|wait|actually)?[,\\s]*";
+    // "make that 190/25", "actually 190/25", "no, 190/25", "should be 190/25"
+    var m = new RegExp(lead + "(?:make\\s+(?:that|it)|change\\s+(?:that|it)\\s+to|(?:that|it)\\s+(?:should\\s+(?:be|have\\s+been)|was|is))?\\s*(?:should\\s+be\\s+)?" + nums + "$", "i").exec(t);
+    if (m && /^(no|nope|oops|sorry|wait|actually|make|change|that|it|should)\b/i.test(t)) return { name: null, cal: Math.round(num(m[1])), pro: Math.round(num(m[2])) };
+    // "that muffin should be 190/25", "the muffin was 190/25", "muffin should be 190/25"
+    m = new RegExp(lead + "(?:the|that|my)?\\s*(.+?)\\s+(?:should\\s+(?:be|have\\s+been|'?ve\\s+been)|was\\s+actually|is\\s+actually|was\\s+really|is\\s+really)\\s+" + nums + "$", "i").exec(t);
+    if (m) return { name: m[1], cal: Math.round(num(m[2])), pro: Math.round(num(m[3])) };
+    // "change muffin to 190/25", "fix muffin 190/25", "update muffin: 190/25"
+    m = new RegExp(lead + "(?:change|correct|fix|update|edit|set)\\s+(?:the\\s+|that\\s+|my\\s+)?(.+?)\\s*(?:to|=|:|->|\\u2192)?\\s+" + nums + "$", "i").exec(t);
+    if (m) return { name: m[1], cal: Math.round(num(m[2])), pro: Math.round(num(m[3])) };
+    return null;
   }
 
   function findLogged(logged, name) {
@@ -524,7 +570,7 @@
     return { status: 200, result: result };
   }
 
-  var api = { respond: respond, matchDrink: matchDrink, foodEngine: foodEngine, trainEngine: trainEngine, parseSets: parseSets, pullDate: pullDate };
+  var api = { respond: respond, matchDrink: matchDrink, correction: correction, foodEngine: foodEngine, trainEngine: trainEngine, parseSets: parseSets, pullDate: pullDate };
 
   if (typeof module !== "undefined" && module.exports) { module.exports = api; return; }
   root.compoundEngine = api;

@@ -160,7 +160,9 @@
   // After a typed "name cal/protein" for a food that isn't saved, offer to save it.
   function noteSubmitted(text) {
     var m = /^(.*?[a-z].*?)\s+(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*g?$/i.exec(String(text || "").trim());
-    if (!m || /~\s*$/.test(m[1]) || /^(save|learn|remember|add)\b/i.test(m[1])) { pendingSave = null; return; }
+    var eng = window.compoundEngine;
+    if (!m || /~\s*$/.test(m[1]) || /^(save|learn|remember|add)\b/i.test(m[1]) ||
+        (eng && eng.correction && eng.correction(String(text).trim()))) { pendingSave = null; return; }
     var name = m[1].trim();
     if (/\b(yesterday|today|ago|on\s+\w+)\b/i.test(name)) { pendingSave = null; return; }
     if (knownFoods(readLog())[lc(name)]) { pendingSave = null; return; }
