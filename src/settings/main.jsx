@@ -1,5 +1,5 @@
 /** @jsx h */
-// Compound Settings screen and first-run onboarding.
+// Compound Settings screen.
 // - window.__ct(name): is a tracker on? (app.js uses it to hide things)
 // - window.__ctCols(area, fallback): column count for the Log stats / Dashboard tiles
 // - window.__compoundOpenSettings(): opens Settings (tab bar button in app.js)
@@ -21,8 +21,7 @@ export const TRACKERS = [
 
 // Same defaults as the app (app.js), so an untouched value reads the same here.
 const APP_DEFAULTS = { calTarget: 1500, proMin: 140, drinkMax: 3, calMargin: 0.1, proMargin: 0.05, stepTarget: 10000, sessionsPerWeek: 4, topOfRange: 12 };
-// Starting targets offered to a brand-new user.
-const NEW_USER = { calTarget: 2000, proMin: 120, drinkMax: 7, calMargin: 0.1, proMargin: 0.05, stepTarget: 8000, sessionsPerWeek: 3, topOfRange: 12 };
+
 
 // ---------- store ----------
 
@@ -63,21 +62,13 @@ function activeTab() {
 }
 
 // Writes settings into the log, syncs, then reloads so the app picks them up.
-async function saveSettings(patch, { newLog, tab } = {}) {
+async function saveSettings(patch, { tab } = {}) {
   window.compoundStore.write((d) => {
-    if (newLog) { d.days = d.days || {}; d.workouts = d.workouts || {}; }
     // goalsVersion 2 stops the app resetting workouts/week on load.
     d.settings = Object.assign({}, d.settings || {}, patch, { goalsVersion: 2 });
   });
   await flush();
   reloadTo(tab || activeTab());
-}
-
-function latestWeight(log) {
-  const days = (log && log.days) || {};
-  const keys = Object.keys(days).sort().reverse();
-  for (const k of keys) if (days[k] && days[k].weight) return Number(days[k].weight);
-  return null;
 }
 
 function signedInEmail() {
@@ -103,16 +94,6 @@ function Stepper({ label, value, onChange, step, min, max, suffix, wide }) {
         </label>
         <button type="button" class="cs-step" aria-label={"More " + label} onClick={() => onChange(clamp(v + step))}>+</button>
       </div>
-    </div>
-  );
-}
-
-function Seg({ options, value, onChange }) {
-  return (
-    <div class="cs-seg">
-      {options.map(([v, label]) => (
-        <button type="button" class={"cs-seg-btn" + (value === v ? " on" : "")} aria-pressed={value === v} onClick={() => onChange(v)}>{label}</button>
-      ))}
     </div>
   );
 }
@@ -146,51 +127,13 @@ function TrackerPicker({ value, onChange }) {
   );
 }
 
-// Mifflin–St Jeor resting energy × activity, adjusted for the goal.
-function Estimator({ weight, onUse }) {
-  const [sex, setSex] = useState("m");
-  const [age, setAge] = useState(35);
-  const [ft, setFt] = useState(5);
-  const [inch, setIn] = useState(10);
-  const [lb, setLb] = useState(weight || 180);
-  const [act, setAct] = useState("mod");
-  const [goal, setGoal] = useState("lose");
-  const kg = (Number(lb) || 0) / 2.20462;
-  const cm = ((Number(ft) || 0) * 12 + (Number(inch) || 0)) * 2.54;
-  const bmr = 10 * kg + 6.25 * cm - 5 * (Number(age) || 0) + (sex === "m" ? 5 : -161);
-  const tdee = bmr * { light: 1.375, mod: 1.55, very: 1.725 }[act];
-  const cal = Math.max(1000, Math.round((tdee + { lose: -500, keep: 0, gain: 250 }[goal]) / 50) * 50);
-  const pro = Math.round((0.8 * (Number(lb) || 0)) / 5) * 5;
-  return (
-    <div class="cs-est">
-      <p class="cs-note">A standard formula estimate from your size and activity. A starting point, not advice. Once you've logged weight and food for a couple of weeks, the Dashboard works out your real maintenance.</p>
-      <Seg options={[["m", "Male"], ["f", "Female"]]} value={sex} onChange={setSex} />
-      <Stepper label="Age" value={age} onChange={setAge} step={1} min={16} max={90} />
-      <Stepper label="Height, feet" value={ft} onChange={setFt} step={1} min={4} max={7} suffix="ft" />
-      <Stepper label="Height, inches" value={inch} onChange={setIn} step={1} min={0} max={11} suffix="in" />
-      <Stepper label="Weight" value={lb} onChange={setLb} step={1} min={70} max={500} suffix="lb" />
-      <span class="cs-row-label">How active are you?</span>
-      <Seg options={[["light", "Lightly"], ["mod", "Moderately"], ["very", "Very"]]} value={act} onChange={setAct} />
-      <span class="cs-row-label">Your goal</span>
-      <Seg options={[["lose", "Lose fat"], ["keep", "Maintain"], ["gain", "Build muscle"]]} value={goal} onChange={setGoal} />
-      <div class="cs-est-result">
-        <span>About <b>{cal.toLocaleString("en-US")}</b> cal and <b>{pro}g</b> protein a day</span>
-        <button type="button" class="cs-btn-outline" onClick={() => onUse(cal, pro)}>Use these</button>
-      </div>
-    </div>
-  );
-}
-
-function Targets({ t, s, set, weight }) {
-  const [est, setEst] = useState(false);
+function Targets({ t, s, set }) {
   const any = TRACKERS.some((x) => t[x.id] !== false && x.id !== "weight");
   return (
     <Fragment>
       {t.food !== false && (
         <section class="cs-card">
-          <div class="cs-card-head"><h3 style={{ color: "#5eead4" }}>Food</h3>
-            <button type="button" class="cs-link" onClick={() => setEst(!est)}>{est ? "Hide" : "Help me pick"}</button></div>
-          {est && <Estimator weight={weight} onUse={(cal, pro) => { set({ calTarget: cal, proMin: pro }); setEst(false); }} />}
+          <h3 style={{ color: "#5eead4" }}>Food</h3>
           <Stepper label="Calories a day" value={s.calTarget} onChange={(v) => set({ calTarget: v })} step={50} min={800} max={6000} />
           <Stepper label="Protein a day, at least" value={s.proMin} onChange={(v) => set({ proMin: v })} step={5} min={0} max={400} suffix="g" />
           <details class="cs-more">
@@ -252,7 +195,7 @@ function backupText() {
   return JSON.stringify(log, null, 2);
 }
 
-function Backup({ restoreOnly }) {
+function Backup() {
   const [msg, setMsg] = useState(null);
   const [shown, setShown] = useState(null);
   const [paste, setPaste] = useState("");
@@ -297,7 +240,6 @@ function Backup({ restoreOnly }) {
     // Keep this device's current log as a safety copy before replacing it.
     try { const cur = localStorage.getItem(KEY); if (cur) localStorage.setItem(LOCAL_BACKUP, JSON.stringify({ savedAt: new Date().toISOString(), value: cur })); } catch (e) {}
     const data = parsed.ok;
-    data.settings = Object.assign({}, data.settings || {}, { onboarded: true });
     window.__compoundRestoring = true;
     try { await window.storage.set(KEY, JSON.stringify(data)); } finally { window.__compoundRestoring = false; }
     await flush();
@@ -306,8 +248,7 @@ function Backup({ restoreOnly }) {
 
   return (
     <div class="cs-backup">
-      {!restoreOnly && (
-        <Fragment>
+      <Fragment>
           <p class="cs-note">A backup is your whole log as one block of text: days, workouts, exercises, foods and settings.</p>
           <div class="cs-btn-row">
             <button type="button" class="cs-btn-secondary" onClick={onCopy}>Copy backup</button>
@@ -316,8 +257,7 @@ function Backup({ restoreOnly }) {
           {msg && <p class="cs-status" role="status">{msg}</p>}
           {shown && <textarea class="cs-textarea" readOnly rows={6} value={shown} onFocus={(e) => e.target.select()} />}
           <h4 class="cs-subhead">Restore</h4>
-        </Fragment>
-      )}
+      </Fragment>
       <textarea class="cs-textarea" rows={4} placeholder="Paste a backup here" value={paste} onInput={(e) => { setPaste(e.target.value); setConfirm(false); }} aria-label="Backup to restore" />
       <label class="cs-file">or choose a backup file<input type="file" accept="application/json,.json,.txt" onChange={onFile} /></label>
       {parsed && parsed.error && <p class="cs-status cs-bad" role="status">{parsed.error}</p>}
@@ -353,7 +293,7 @@ function Settings({ onClose }) {
   const set = (p) => { setS(Object.assign({}, s, p)); setDirty(true); };
   const save = async () => {
     setSaving(true);
-    await saveSettings(Object.assign(clean(s), { trackers: t, onboarded: true }), { tab: t.training === false && activeTab() === "Train" ? "Log" : undefined });
+    await saveSettings(Object.assign(clean(s), { trackers: t }), { tab: t.training === false && activeTab() === "Train" ? "Log" : undefined });
   };
   return (
     <div class="cs-screen" role="dialog" aria-label="Settings">
@@ -368,7 +308,7 @@ function Settings({ onClose }) {
         {none && <p class="cs-status cs-bad">Pick at least one.</p>}
 
         <h3 class="cs-section">Targets</h3>
-        <Targets t={t} s={s} set={set} weight={latestWeight(log)} />
+        <Targets t={t} s={s} set={set} />
 
         <h3 class="cs-section">Backup</h3>
         <Backup />
@@ -386,80 +326,6 @@ function Settings({ onClose }) {
       )}
     </div>
   );
-}
-
-// ---------- first-run onboarding ----------
-
-function Dots({ n, of }) {
-  return <div class="cs-dots" aria-label={`Step ${n} of ${of}`}>{Array.from({ length: of }, (_, i) => <i class={i + 1 === n ? "on wide" : i + 1 < n ? "on" : ""} />)}</div>;
-}
-
-function Onboarding() {
-  const [step, setStep] = useState("welcome");
-  const [t, setT] = useState({ food: false, training: false, steps: false, weight: false, drinking: false });
-  const [s, setS] = useState(Object.assign({}, NEW_USER));
-  const [saving, setSaving] = useState(false);
-  const name = (signedInName() || "").split(" ")[0];
-  const any = TRACKERS.some((x) => t[x.id]);
-  const finish = async () => {
-    setSaving(true);
-    await saveSettings(Object.assign(clean(s), { trackers: t, onboarded: true }), { newLog: true, tab: "Log" });
-  };
-
-  if (step === "welcome") return (
-    <div class="cs-screen cs-onb" role="dialog" aria-label="Welcome">
-      <div class="cs-onb-welcome">
-        <div class="cs-bars" aria-hidden="true"><i style="height:14px" /><i style="height:20px" /><i style="height:28px" /><i style="height:40px;background:#d4a017" /><i style="height:56px;background:#fbbf24" /></div>
-        <h1>Welcome to Compound{name ? `, ${name}` : ""}.</h1>
-        <p class="cs-lead">Small things, logged every day, add up. Let's set it up around what you care about.</p>
-        <p class="cs-note">About a minute. You can change all of it later in Settings.</p>
-      </div>
-      <footer class="cs-foot">
-        <button type="button" class="cs-btn-primary" onClick={() => setStep("pick")}>Get started</button>
-        <button type="button" class="cs-btn-text" onClick={() => setStep("restore")}>I have a backup to restore</button>
-      </footer>
-    </div>
-  );
-
-  if (step === "restore") return (
-    <div class="cs-screen cs-onb" role="dialog" aria-label="Restore a backup">
-      <header class="cs-head"><button type="button" class="cs-back" onClick={() => setStep("welcome")} aria-label="Back">‹</button><h2>Restore a backup</h2><span /></header>
-      <div class="cs-body"><Backup restoreOnly /></div>
-    </div>
-  );
-
-  if (step === "pick") return (
-    <div class="cs-screen cs-onb" role="dialog" aria-label="What do you want to track?">
-      <header class="cs-head"><button type="button" class="cs-back" onClick={() => setStep("welcome")} aria-label="Back">‹</button><Dots n={1} of={2} /><span /></header>
-      <div class="cs-body">
-        <h2 class="cs-title">What do you want to track?</h2>
-        <p class="cs-lead">Pick as many as you like. Anything you leave off stays out of sight.</p>
-        <TrackerPicker value={t} onChange={setT} />
-      </div>
-      <footer class="cs-foot">
-        {!any && <p class="cs-note cs-center">Pick at least one to continue.</p>}
-        <button type="button" class="cs-btn-primary" disabled={!any} onClick={() => setStep("targets")}>Continue</button>
-      </footer>
-    </div>
-  );
-
-  return (
-    <div class="cs-screen cs-onb" role="dialog" aria-label="Set your targets">
-      <header class="cs-head"><button type="button" class="cs-back" onClick={() => setStep("pick")} aria-label="Back">‹</button><Dots n={2} of={2} /><span /></header>
-      <div class="cs-body">
-        <h2 class="cs-title">Set your targets</h2>
-        <p class="cs-lead">Dashboard streaks are measured against these. Rough is fine.</p>
-        <Targets t={t} s={s} set={(p) => setS(Object.assign({}, s, p))} weight={null} />
-      </div>
-      <footer class="cs-foot">
-        <button type="button" class="cs-btn-primary" disabled={saving} onClick={finish}>{saving ? "Setting up…" : "Start logging"}</button>
-      </footer>
-    </div>
-  );
-}
-
-function signedInName() {
-  try { return JSON.parse(localStorage.getItem("healthlog:sync") || "{}").name || null; } catch (e) { return null; }
 }
 
 // ---------- mounting ----------
@@ -480,20 +346,3 @@ function close() {
 }
 
 window.__compoundOpenSettings = () => render(<Settings onClose={close} />, mountHost());
-
-// A brand-new account has no log yet: show onboarding once the app is up.
-// Existing users (any saved log without onboarded:false) never see it.
-function needsOnboarding() {
-  const log = readLog();
-  if (!log) return true;
-  return !!(log.settings && log.settings.onboarded === false);
-}
-function whenAppReady(cb) {
-  // sync.js loads app.js only after sign-in and the first sync.
-  const go = () => setTimeout(cb, 0);
-  if (window.__compoundAppLoaded) return go();
-  window.addEventListener("compound:app-loaded", go, { once: true });
-}
-whenAppReady(() => {
-  if (needsOnboarding()) render(<Onboarding />, mountHost());
-});

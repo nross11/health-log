@@ -281,11 +281,6 @@
   function loadApp() {
     var s = document.createElement("script");
     s.src = "app.js";
-    // settings.js waits for this before deciding whether to show onboarding.
-    s.onload = function () {
-      window.__compoundAppLoaded = true;
-      try { window.dispatchEvent(new Event("compound:app-loaded")); } catch (e) {}
-    };
     document.body.appendChild(s);
     document.addEventListener("visibilitychange", function () {
       if (document.visibilityState === "visible") checkForUpdates(); else if (meta.dirty) push();
@@ -311,7 +306,7 @@
         ["foodlog:v5", "foodlog:v4", "foodlog:v3", "foodlog:v2"].forEach(lsDel);
         meta.version = 0; meta.dirty = false;
       }
-      meta.email = user.email; meta.name = user.name || null; saveMeta();
+      meta.email = user.email; saveMeta();
       return reconcile();
     }).then(function () {
       loadApp();

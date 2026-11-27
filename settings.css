@@ -1,4 +1,4 @@
-/* Compound Settings and first-run onboarding. Matches the app's dark slate + amber look. */
+/* Compound Settings screen. Matches the app's dark slate + amber look. */
 #compound-settings {
   --cs-bg: #0f172a;
   --cs-card: #151f32;
@@ -26,20 +26,13 @@ html.cs-open, html.cs-open body { overflow: hidden; }
 
 .cs-screen { position: fixed; inset: 0; z-index: 50; background: var(--cs-bg); display: flex; flex-direction: column; max-width: 576px; margin: 0 auto; }
 .cs-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 8px 20px; border-bottom: 1px solid #1e293b; min-height: 48px; }
-.cs-onb .cs-head { border-bottom: 0; padding-left: 8px; }
 .cs-head h2 { margin: 0; font-size: 18px; font-weight: 600; color: var(--cs-strong); }
 .cs-head > span { width: 44px; }
-.cs-close, .cs-back { width: 44px; height: 44px; border-radius: 10px; color: var(--cs-dim) !important; font-size: 18px !important; display: flex; align-items: center; justify-content: center; }
-.cs-back { font-size: 30px !important; line-height: 1; }
 .cs-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 8px 20px 32px; display: flex; flex-direction: column; gap: 12px; }
 .cs-foot { padding: 12px 20px calc(env(safe-area-inset-bottom, 0px) + 16px); border-top: 1px solid #1e293b; display: flex; flex-direction: column; gap: 8px; }
-.cs-onb .cs-foot { border-top: 0; }
 
 .cs-section { margin: 18px 0 0; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--cs-faint); }
-.cs-title { margin: 6px 0 0; font-size: 26px; font-weight: 700; letter-spacing: -.01em; color: var(--cs-strong); }
-.cs-lead { margin: 0 0 6px; font-size: 15px; color: var(--cs-dim); }
 .cs-note { margin: 0; font-size: 13px; color: var(--cs-faint); line-height: 1.45; }
-.cs-center { text-align: center; }
 .cs-status { margin: 0; font-size: 13px; color: var(--cs-text); }
 .cs-bad { color: var(--cs-bad); }
 .cs-subhead { margin: 10px 0 0; font-size: 14px; font-weight: 600; color: var(--cs-strong); }
@@ -55,8 +48,6 @@ html.cs-open, html.cs-open body { overflow: hidden; }
 
 .cs-card { background: var(--cs-card); border: 1px solid #243049; border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
 .cs-card h3 { margin: 0; font-size: 15px; font-weight: 600; }
-.cs-card-head { display: flex; align-items: center; justify-content: space-between; }
-.cs-link { color: var(--cs-accent) !important; font-size: 14px !important; font-weight: 500; padding: 8px 0 !important; }
 
 .cs-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .cs-row-label { font-size: 15px; color: var(--cs-text); }
@@ -68,13 +59,7 @@ html.cs-open, html.cs-open body { overflow: hidden; }
 .cs-step-field input::-webkit-outer-spin-button, .cs-step-field input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .cs-step-field span { font-size: 12px; color: var(--cs-faint); padding-right: 6px; }
 
-.cs-seg { display: flex; flex-wrap: wrap; gap: 6px; }
-.cs-seg-btn { height: 38px; padding: 0 14px !important; border-radius: 10px; border: 1px solid #334155 !important; color: #cbd5e1 !important; font-size: 14px !important; font-weight: 500; }
-.cs-seg-btn.on { background: var(--cs-accent) !important; border-color: var(--cs-accent) !important; color: var(--cs-accent-ink) !important; }
 
-.cs-est { background: var(--cs-bg); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-.cs-est-result { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid #243049; padding-top: 12px; font-size: 14px; }
-.cs-est-result b { color: var(--cs-strong); }
 
 .cs-more summary { cursor: pointer; font-size: 14px; color: var(--cs-dim); padding: 4px 0; }
 .cs-more[open] { display: flex; flex-direction: column; gap: 10px; }
@@ -82,11 +67,8 @@ html.cs-open, html.cs-open body { overflow: hidden; }
 .cs-btn-primary, .cs-btn-danger { height: 52px; width: 100%; border-radius: 14px; background: var(--cs-accent) !important; color: var(--cs-accent-ink) !important; font-size: 17px !important; font-weight: 600 !important; }
 .cs-btn-danger { background: #f43f5e !important; color: #fff !important; }
 .cs-btn-secondary { height: 44px; padding: 0 14px !important; border-radius: 12px; background: #1e293b !important; border: 1px solid #334155 !important; color: var(--cs-text) !important; font-size: 14px !important; flex: 1; }
-.cs-btn-outline { height: 36px; padding: 0 14px !important; border-radius: 10px; border: 1px solid var(--cs-accent) !important; color: var(--cs-accent) !important; font-size: 14px !important; font-weight: 600; flex: none; }
-.cs-btn-text { height: 44px; color: var(--cs-dim) !important; font-size: 15px !important; }
 .cs-btn-row { display: flex; gap: 8px; }
 
-.cs-backup { display: flex; flex-direction: column; gap: 10px; }
 .cs-textarea { width: 100%; box-sizing: border-box; resize: vertical; background: #172033; border: 1px solid #334155; border-radius: 12px; color: var(--cs-text); padding: 10px 12px; font: 12px/1.4 ui-monospace, Menlo, monospace; }
 .cs-file { font-size: 14px; color: var(--cs-dim); display: flex; flex-direction: column; gap: 6px; }
 .cs-file input { font-size: 13px; color: var(--cs-dim); }
@@ -95,13 +77,4 @@ html.cs-open, html.cs-open body { overflow: hidden; }
 .cs-account b { color: var(--cs-strong); font-weight: 600; word-break: break-all; }
 .cs-account .cs-btn-secondary { flex: none; }
 
-.cs-dots { display: flex; gap: 6px; }
-.cs-dots i { width: 6px; height: 6px; border-radius: 3px; background: #334155; }
-.cs-dots i.on { background: var(--cs-accent); }
-.cs-dots i.wide { width: 22px; }
 
-.cs-onb-welcome { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 18px; padding: 40px 28px 0; }
-.cs-onb-welcome h1 { margin: 0; font-size: 32px; line-height: 1.15; font-weight: 700; letter-spacing: -.02em; color: var(--cs-strong); }
-.cs-onb-welcome .cs-lead { font-size: 17px; line-height: 1.5; }
-.cs-bars { display: flex; align-items: flex-end; gap: 6px; height: 56px; }
-.cs-bars i { width: 14px; border-radius: 4px; background: #475569; }
