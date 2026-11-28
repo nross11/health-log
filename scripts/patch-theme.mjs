@@ -68,6 +68,19 @@ replaceOnce(
   "dashboard title"
 );
 
+// No streak leeway: drop the "within 10% / 5%" note from the Dashboard.
+replaceOnce(
+  '"Streaks hold within ",Math.round(I.calMargin*100),"% over on calories and ",Math.round(I.proMargin*100),"% under on protein. All except drinks need 7/7 days logged."',
+  '"Streaks count weeks you hit your goals. All except drinks need 7/7 days logged."',
+  "streak note"
+);
+// No streak leeway: streak thresholds are the goals themselves.
+replaceOnce(
+  'lse=e=>Math.round(e.calTarget*(1+(e.calMargin??0))),use=e=>Math.round(e.proMin*(1-(e.proMargin??0)))',
+  'lse=e=>Math.round(e.calTarget),use=e=>Math.round(e.proMin)',
+  "streak thresholds"
+);
+
 src = MARK + src;
 writeFileSync(FILE, src);
 console.log(`Patched app.js (${n} replacements).`);

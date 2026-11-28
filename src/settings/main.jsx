@@ -136,12 +136,6 @@ function Targets({ t, s, set }) {
           <h3 style={{ color: "#5eead4" }}>Food</h3>
           <Stepper label="Calories a day" value={s.calTarget} onChange={(v) => set({ calTarget: v })} step={50} min={800} max={6000} />
           <Stepper label="Protein a day, at least" value={s.proMin} onChange={(v) => set({ proMin: v })} step={5} min={0} max={400} suffix="g" />
-          <details class="cs-more">
-            <summary>Streak leeway</summary>
-            <p class="cs-note">How far off a week's average can be and still keep the streak.</p>
-            <Stepper label="Calories over by up to" value={Math.round(s.calMargin * 100)} onChange={(v) => set({ calMargin: (Number(v) || 0) / 100 })} step={1} min={0} max={50} suffix="%" />
-            <Stepper label="Protein under by up to" value={Math.round(s.proMargin * 100)} onChange={(v) => set({ proMargin: (Number(v) || 0) / 100 })} step={1} min={0} max={50} suffix="%" />
-          </details>
         </section>
       )}
       {t.training !== false && (
