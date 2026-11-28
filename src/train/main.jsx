@@ -502,6 +502,7 @@ function Home({ data, onOpen, onStart }) {
 
   return (
     <div class="ct-home">
+      <h1 class="cx-title">Train</h1>
       {open ? (
         <button class="ct-resume" onClick={() => onOpen(open.id)}>
           <span>Resume {templateName(data, open.template)}</span>

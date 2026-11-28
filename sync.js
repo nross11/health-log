@@ -49,7 +49,7 @@
   function status(text, action) {
     if (!pill) {
       pill = document.createElement("div");
-      pill.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 76px);" +
+      pill.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);" +
         "z-index:9999;background:#1e293b;color:#e2e8f0;border:1px solid #334155;border-radius:999px;padding:6px 14px;" +
         "font:500 12px/1.4 -apple-system,system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.4);display:none;cursor:default";
       document.body.appendChild(pill);
