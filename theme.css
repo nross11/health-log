@@ -1,0 +1,274 @@
+/* Compound "Meters" look in the Ember palette.
+   Loaded after styles.css, train.css and settings.css, so it wins at equal
+   specificity. The cx-* classes come from scripts/patch-theme.mjs.
+   Calories = orange, protein = amber, steps/weight = bone. */
+:root {
+  --cx-bg: #120F0D;
+  --cx-raise: #1B1613;
+  --cx-card: #221C18;
+  --cx-dock: #1E1814;
+  --cx-line: #2A2420;
+  --cx-line-2: #3A302A;
+  --cx-fg: #F6EFE8;
+  --cx-fg-2: #E6DDD3;
+  --cx-dim: #B5A89C;
+  --cx-mute: #9C8F84;
+  --cx-faint: #7A6E64;
+  --cx-ghost: #5A5049;
+  --cx-orange: #FF5B14;
+  --cx-orange-hi: #FF7A3D;
+  --cx-orange-ink: #160800;
+  --cx-amber: #FFC23D;
+  --cx-bone: #F6EFE8;
+  --cx-rose: #FF8A8A;
+  --cx-display: "Big Shoulders Display", Impact, "Arial Narrow", sans-serif;
+  --cx-text: "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  /* room the floating tab bar takes at the bottom of the screen */
+  --cx-dock-h: calc(84px + env(safe-area-inset-bottom, 0px));
+  color-scheme: dark;
+}
+html, body { background: var(--cx-bg) !important; }
+body { font-family: var(--cx-text); }
+
+/* ---------- Tailwind colors, remapped to Ember ---------- */
+.cx-app { background: var(--cx-bg) !important; color: var(--cx-fg); font-family: var(--cx-text); }
+.cx-app .bg-slate-900 { background-color: var(--cx-bg); }
+.cx-app .bg-slate-800, .cx-app .hover\:bg-slate-800:hover, .cx-app .disabled\:bg-slate-800:disabled { background-color: var(--cx-card); }
+.cx-app .bg-slate-800\/60, .cx-app .bg-slate-700\/60 { background-color: var(--cx-card); }
+.cx-app .bg-slate-800\/40, .cx-app .bg-slate-800\/50, .cx-app .hover\:bg-slate-800\/50:hover { background-color: rgba(34, 28, 24, .7); }
+.cx-app .bg-slate-800\/30, .cx-app .bg-slate-800\/20 { background-color: rgba(34, 28, 24, .45); }
+.cx-app .bg-slate-700, .cx-app .hover\:bg-slate-700:hover { background-color: var(--cx-line-2); }
+.cx-app .bg-slate-600 { background-color: var(--cx-faint); }
+.cx-app .border-slate-800 { border-color: var(--cx-line); }
+.cx-app .border-slate-700, .cx-app .hover\:border-slate-700:hover { border-color: var(--cx-line-2); }
+.cx-app .border-slate-700\/50 { border-color: rgba(58, 48, 42, .6); }
+.cx-app .hover\:border-slate-500:hover { border-color: var(--cx-faint); }
+.cx-app .text-slate-100, .cx-app .text-slate-200, .cx-app .hover\:text-slate-200:hover { color: var(--cx-fg); }
+.cx-app .text-slate-300, .cx-app .hover\:text-slate-300:hover { color: var(--cx-fg-2); }
+.cx-app .text-slate-400 { color: var(--cx-dim); }
+.cx-app .text-slate-500, .cx-app .group:hover .group-hover\:text-slate-500 { color: var(--cx-mute); }
+.cx-app .text-slate-600, .cx-app .disabled\:text-slate-600:disabled { color: var(--cx-faint); }
+.cx-app .text-slate-700 { color: var(--cx-ghost); }
+.cx-app .text-slate-900 { color: var(--cx-orange-ink); }
+.cx-app .placeholder-slate-600::placeholder { color: var(--cx-faint); }
+.cx-app .text-teal-300, .cx-app .text-teal-300\/70 { color: var(--cx-orange-hi); }
+.cx-app .bg-teal-400, .cx-app .bg-teal-500\/60 { background-color: var(--cx-orange); }
+.cx-app .text-amber-400, .cx-app .text-amber-400\/70, .cx-app .text-amber-400\/80 { color: var(--cx-amber); }
+.cx-app .text-violet-300, .cx-app .text-violet-300\/60 { color: var(--cx-bone); }
+.cx-app .bg-violet-300 { background-color: var(--cx-bone); }
+/* amber buttons become the orange accent; amber stays for protein */
+.cx-app .bg-amber-400 { background-color: var(--cx-orange); color: var(--cx-orange-ink); }
+.cx-app .hover\:bg-amber-300:hover { background-color: var(--cx-orange-hi); }
+.cx-app .bg-amber-400\/5, .cx-app .bg-amber-400\/10 { background-color: rgba(255, 91, 20, .08); }
+.cx-app .border-amber-400, .cx-app .focus\:border-amber-400:focus { border-color: var(--cx-orange); }
+.cx-app .border-amber-400\/20, .cx-app .border-amber-400\/30 { border-color: rgba(255, 91, 20, .35); }
+.cx-app .focus\:ring-amber-400:focus, .cx-app .focus\:ring-amber-200:focus { --tw-ring-color: rgba(255, 91, 20, .7); }
+.cx-app input, .cx-app textarea, .cx-app select { font-family: var(--cx-text); }
+.cx-app .rounded-xl { border-radius: 16px; }
+
+/* ---------- Big screen titles ---------- */
+.cx-title {
+  margin: 4px 0 18px;
+  font-family: var(--cx-display);
+  font-weight: 900;
+  font-size: 56px;
+  line-height: .9;
+  letter-spacing: -.005em;
+  text-transform: uppercase;
+  color: var(--cx-fg);
+  text-wrap: balance;
+}
+.cx-title-dash { margin-top: 6px; }
+
+/* ---------- Log: meters ---------- */
+.cx-meters { grid-template-columns: 1fr !important; gap: 16px !important; }
+.cx-meters > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  column-gap: 8px;
+  row-gap: 8px;
+}
+.cx-meters > div > div:nth-child(1) {
+  font-family: var(--cx-display);
+  font-weight: 900;
+  font-size: 40px !important;
+  line-height: .9 !important;
+  letter-spacing: .005em;
+}
+.cx-meters > div > div:nth-child(2) {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: var(--cx-mute) !important;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font-weight: 600;
+}
+.cx-meters > div > div:nth-child(3) {
+  grid-column: 1 / -1;
+  margin: 0 !important;
+  height: 10px !important;
+  background: var(--cx-card) !important;
+}
+.cx-meters .bg-amber-400 { background-color: var(--cx-amber); }
+/* numbers: calories orange, protein amber when hit, others bone */
+.cx-meters .text-slate-300, .cx-meters .text-slate-200 { color: var(--cx-fg); }
+
+/* ---------- Log: food list ---------- */
+.cx-app .space-y-0\.5 > div { padding-top: 10px; padding-bottom: 10px; border-radius: 0; border-bottom: 1px solid var(--cx-line); }
+.cx-app .space-y-0\.5 > div:last-child { border-bottom: 0; }
+.cx-app .space-y-0\.5 > div .text-sm { font-size: 15px; }
+.cx-app .space-y-0\.5 > div .text-xs.tabular-nums { font-size: 14px; font-weight: 700; }
+
+/* ---------- Input bar: rounded pill above the tab bar ---------- */
+.cx-input { border-top: 0 !important; background: var(--cx-bg) !important; }
+.cx-input textarea {
+  border-radius: 24px !important;
+  background: var(--cx-raise) !important;
+  border-color: var(--cx-line) !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  min-height: 48px;
+}
+.cx-input button.rounded-xl { border-radius: 999px !important; width: 48px; height: 48px; display: grid; place-items: center; }
+
+/* ---------- Floating tab bar ---------- */
+.cx-app > div { padding-top: env(safe-area-inset-top, 0px); padding-bottom: var(--cx-dock-h); }
+/* Dashboard numbers in the display face */
+.cx-app .text-xl.font-semibold.tabular-nums, .cx-app .text-2xl.font-semibold { font-family: var(--cx-display); font-weight: 900; font-size: 30px; line-height: 1; letter-spacing: .005em; }
+.cx-tabs {
+  position: fixed !important;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  z-index: 40;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--cx-line) !important;
+  border-radius: 999px;
+  background: var(--cx-dock);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+  width: max-content;
+  max-width: calc(100% - 24px);
+}
+.cx-tabs > button {
+  flex: none !important;
+  height: 44px;
+  padding: 0 16px !important;
+  border-radius: 999px;
+  border: 0 !important;
+  margin: 0 !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--cx-mute) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cx-tabs > button.cx-on { background: var(--cx-orange); color: var(--cx-orange-ink) !important; }
+.cx-tabs > button:last-child { padding: 0 12px !important; }
+
+/* ---------- Status pill and Log chips (injected styles) ---------- */
+html .cmp-chip { background: var(--cx-card); border-color: var(--cx-line-2); color: var(--cx-fg-2); border-radius: 999px; }
+html .cmp-sheet { background: var(--cx-bg); border-top-color: var(--cx-line-2); }
+html .cmp-row input { background: var(--cx-card); border-color: var(--cx-line-2); color: var(--cx-fg); }
+html .cmp-row input:focus { border-color: var(--cx-orange); }
+html .cmp-save { background: var(--cx-orange); color: var(--cx-orange-ink); }
+html .cmp-cancel { background: var(--cx-card); color: var(--cx-fg-2); }
+
+/* ---------- Train ---------- */
+html #compound-train {
+  --ct-bg: var(--cx-bg);
+  --ct-card: var(--cx-card);
+  --ct-card-2: var(--cx-card);
+  --ct-line: var(--cx-line-2);
+  --ct-text: var(--cx-fg-2);
+  --ct-strong: var(--cx-fg);
+  --ct-dim: var(--cx-dim);
+  --ct-faint: var(--cx-mute);
+  --ct-accent: var(--cx-orange);
+  --ct-accent-ink: var(--cx-orange-ink);
+  --ct-good: var(--cx-orange);
+  --ct-bad: var(--cx-rose);
+  font-family: var(--cx-text);
+}
+html #compound-train .cx-title { margin: 0 0 4px; }
+.ct-session { padding-bottom: calc(150px + var(--cx-dock-h)); }
+.ct-session-head { align-items: flex-end; padding: 14px 16px 12px; border-bottom: 0; }
+.ct-session-title b {
+  font-family: var(--cx-display);
+  font-weight: 900;
+  font-size: 46px;
+  line-height: .9;
+  text-transform: uppercase;
+  letter-spacing: -.005em;
+}
+.ct-session-title span { margin-top: 6px; color: var(--cx-mute); }
+.ct-btn { border-radius: 999px; }
+.ct-primary, .ct-go { background: var(--cx-orange) !important; color: var(--cx-orange-ink) !important; border-color: var(--cx-orange) !important; font-weight: 800; }
+.ct-card { border-radius: 20px; border-color: transparent; padding: 12px 14px 14px; }
+.ct-card-title span:first-child {
+  font-family: var(--cx-display);
+  font-weight: 900;
+  font-size: 22px;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: .005em;
+}
+.ct-tag { text-transform: uppercase; letter-spacing: .08em; font-size: 10px; font-weight: 700; border: 0; padding: 0; color: var(--cx-mute); }
+.ct-set { background: var(--cx-line) !important; border-radius: 999px; }
+.ct-set-n { background: var(--cx-bone); color: var(--cx-bg); }
+.ct-pr { background: var(--cx-amber); color: #1F1400; border-radius: 999px; padding: 1px 7px; }
+.ct-stepper { border-radius: 14px; background: var(--cx-raise); border-color: var(--cx-line); }
+.ct-step-field input { font-family: var(--cx-display); font-weight: 900; font-size: 26px; }
+.ct-log { border-radius: 14px; color: var(--cx-orange-ink) !important; }
+.ct-add { border-radius: 20px; }
+.ct-type { bottom: 0; border-top: 0; padding-bottom: calc(var(--cx-dock-h) + 2px); }
+.ct-type input { border-radius: 999px; background: var(--cx-raise); border-color: var(--cx-line); padding: 12px 18px; }
+.ct-rest { bottom: calc(var(--cx-dock-h) + 70px); background: var(--cx-amber); border-color: var(--cx-amber); color: #1F1400; border-radius: 999px; }
+.ct-rest-bar { background: rgba(0, 0, 0, .1); }
+.ct-rest-label { color: #1F1400; font-weight: 800; }
+.ct-rest-btns button { border: 0 !important; background: rgba(0, 0, 0, .12) !important; border-radius: 999px; color: #1F1400 !important; }
+.ct-rest-done { background: var(--cx-orange); border-color: var(--cx-orange); }
+.ct-tpl { border-radius: 20px; border-color: transparent !important; }
+.ct-tpl b { font-family: var(--cx-display); font-weight: 900; font-size: 24px; text-transform: uppercase; line-height: 1; }
+.ct-tpl-empty { border-color: var(--cx-line-2) !important; }
+.ct-week { border-radius: 999px; padding: 10px 16px; }
+.ct-dots i.on { background: var(--cx-orange); }
+.ct-summary h2 { font-family: var(--cx-display); font-weight: 900; font-size: 40px; text-transform: uppercase; line-height: .9; }
+.ct-sheet { border-radius: 24px 24px 0 0; }
+.ct-chips button.on { color: var(--cx-orange-ink) !important; }
+.ct-toast { background: var(--cx-bone); color: var(--cx-bg); }
+
+/* ---------- Settings ---------- */
+html #compound-settings {
+  --cs-bg: var(--cx-bg);
+  --cs-card: var(--cx-raise);
+  --cs-card-2: var(--cx-card);
+  --cs-line: var(--cx-line-2);
+  --cs-text: var(--cx-fg-2);
+  --cs-strong: var(--cx-fg);
+  --cs-dim: var(--cx-dim);
+  --cs-faint: var(--cx-mute);
+  --cs-accent: var(--cx-orange);
+  --cs-accent-ink: var(--cx-orange-ink);
+  --cs-bad: var(--cx-rose);
+  font-family: var(--cx-text);
+}
+html #compound-settings .cs-head, html #compound-settings .cs-foot { border-color: var(--cx-line); }
+html #compound-settings .cs-btn-secondary { background: var(--cx-card) !important; border-color: var(--cx-line-2) !important; }
+html #compound-settings .cs-tracker { background: var(--cx-raise) !important; border-color: var(--cx-line) !important; }
+html #compound-settings .cs-tracker.on { background: var(--cx-card) !important; border-color: var(--cx-line-2) !important; }
+html #compound-settings .cs-tracker-text b { color: var(--cx-fg); }
+html #compound-settings .cs-check { border-color: var(--cx-ghost); }
+html #compound-settings .cs-card { border-color: var(--cx-line); }
+html #compound-settings .cs-step { color: var(--cx-fg-2) !important; }
+html #compound-settings .cs-step:active { background: var(--cx-line-2) !important; }
+html #compound-settings .cs-textarea { background: var(--cx-raise); border-color: var(--cx-line-2); }
+
+/* ---------- Sign-in screen ---------- */
+#hl-signin { background: var(--cx-bg) !important; color: var(--cx-fg) !important; font-family: var(--cx-text) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cx-app * { transition: none !important; }
+}
